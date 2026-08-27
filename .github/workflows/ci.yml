@@ -15,6 +15,11 @@ on:
       - "requirements.txt"
       - ".github/workflows/**"
 
+# Required permissions to allow the GITHUB_TOKEN to create issues
+permissions:
+    contents: read
+    issues: write
+
 jobs:
   run-predict:
     runs-on: ubuntu-latest
@@ -34,4 +39,13 @@ jobs:
         run: |
           python src/predict.py
 
+      - name: Create Issue on Failure
+        if: failure() && github.event_name == 'push'  # Triggers only on push failures, ignores PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Format Failure: ${{ github.workflow }} (#${{ github.run_number }})" \
+            --body "The format script failed on run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). Triggered by push from: @${{ github.actor }}." \
+            --label "bug"
         
